@@ -44,7 +44,8 @@ class Agent():
         # send each unit a random action
         for unit_id in my_units:
 
-            action = random.choice(actions)
+            # action = random.choice(actions)
+            action = "left"
 
             if action in ["up", "left", "right", "down"]:
                 await self._client.send_move(action, unit_id)
