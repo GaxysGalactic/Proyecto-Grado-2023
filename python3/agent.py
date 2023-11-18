@@ -98,7 +98,7 @@ class Agent():
     def _get_danger_grid(self):
         w = self._client._state.get("world").get("width")
         h = self._client._state.get("world").get("height")
-        grid = np.zeros(h, w)
+        grid = np.zeros((h, w))
 
         entities = self._client._state.get("entities")
         directions = [[0,1], [0, -1], [1, 0], [-1,0]]
@@ -107,7 +107,7 @@ class Agent():
         for bomb in bombs:
             bomb_x, bomb_y = bomb.get("x"), bomb.get("y")
             bomb_blast_diameter = bomb.get("blast_diameter")
-            radius = (bomb_blast_diameter - 1) / 2
+            radius = round((bomb_blast_diameter - 1) / 2)
 
             for direction in directions:
                 for d in range(1, radius + 1):
@@ -135,9 +135,10 @@ class Agent():
         # send each unit a random action
         for unit_id in my_units:
 
-            # 10% of the time they'll place a bomb
+            # 3% of the time they'll place a bomb
+            # Essentially, a bomb is expected every 3.3 seconds
             randint = random.randrange(0,100)
-            if randint < 10:
+            if randint < 3:
                 action = "bomb"
             else:
                 # this unit's location
@@ -151,7 +152,7 @@ class Agent():
 
                 if empty_tiles:
                     # if in danger... go to biggest danger decrease
-                    if danger_grid[unit_location] > 0:
+                    if danger_grid[unit_location[0]][unit_location[1]] > 0:
                         min_danger = 999
                         chosen_tile = unit_location
                         for tile in empty_tiles:
