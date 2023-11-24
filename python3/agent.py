@@ -98,7 +98,7 @@ class Agent():
     def _get_danger_grid(self):
         w = self._client._state.get("world").get("width")
         h = self._client._state.get("world").get("height")
-        grid = np.zeros((h, w))
+        grid = np.zeros((h + 1, w + 1))
 
         entities = self._client._state.get("entities")
         directions = [[0,1], [0, -1], [1, 0], [-1,0]]
