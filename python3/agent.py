@@ -112,7 +112,7 @@ class Agent():
             for direction in directions:
                 for d in range(1, radius + 1):
                     new_x, new_y = bomb_x + direction[0]*d, bomb_y + direction[1]*d
-                    if self._is_occupied([new_x, new_y]):
+                    if self._is_occupied([new_x, new_y]): # AND IS IN BOUNDS....
                         break
                     else:
                         grid[new_x, new_y] += radius - d
