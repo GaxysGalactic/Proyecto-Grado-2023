@@ -23,6 +23,21 @@ mock_state: Dict = {
 agent_ids: ["a", "b"]
 opponent_choices: ["Random", "DoNothing", "Dodger"]
 
+def calculate_reward(p_state: Dict, c_state: Dict, training_id, opponent_id):
+    friendlies = p_state.get("agents").get(training_id).get("unit_ids")
+    enemies = p_state.get("agents").get(opponent_id).get("unit_ids")
+    reward = 0
+    for unit in friendlies:
+        reward += c_state["unit_state"][unit]["hp"] - p_state["unit_state"][unit]["hp"]
+        if c_state["unit_state"][unit]["hp"] - p_state["unit_state"][unit]["hp"] == -1 and c_state["unit_state"][unit]["hp"] == 0:
+            reward -= 2
+    for unit in enemies:
+        reward += p_state["unit_state"][unit]["hp"] - c_state["unit_state"][unit]["hp"]
+        if p_state["unit_state"][unit]["hp"] - c_state["unit_state"][unit]["hp"] == 1 and c_state["unit_state"][unit]["hp"] == 0:
+            reward += 2
+    return reward
+
+
 def parse_unit_id(uid: str):
     if uid == "c":
         return 0
@@ -49,8 +64,9 @@ def parse_units(li: list, unit_state: Dict, friendly_id: str):
             agent_id: float = 1
         else:
             agent_id: float = 0
-        invuln: float = stats["invulnerability"] / 300
-        li.extend([coord, hp, b_diameter, unit_id, agent_id, invuln])
+        invuln: float = stats["invulnerability"] / 428
+        stun: float = stats["stunned"] / 428
+        li.extend([coord, hp, b_diameter, unit_id, agent_id, invuln, stun])
     return li
 
 def parse_entity_type(tp: str):
@@ -75,12 +91,12 @@ def parse_entities(li: list, entities: Dict):
     counter = 0
     for stats in entities:
         counter += 1
-        created: float = stats["created"] / 300
+        created: float = stats["created"] / 428
         coord: float = (stats["y"]*15 + stats["x"]) / 225
         en_type: float = parse_entity_type(stats["type"]) / 7
 
         if "hp" in stats:
-            hp: float = stats["hp"]
+            hp: float = stats["hp"] / 3
         else:
             hp: float = 0
 
@@ -90,7 +106,7 @@ def parse_entities(li: list, entities: Dict):
             unit_id: float = 0
 
         if "expires" in stats:
-            expires: float = stats["expires"] / 300
+            expires: float = stats["expires"] / 428
         else:
             expires: float = 0
 
@@ -130,56 +146,69 @@ async def main():
     await gym.connect()
     env = gym.make("bomberland-open-ai-gym", random.choice(initial_states_li))
 
+    # Opponents
     randall = RandomAgent()
     dodgy = DodgerAgent()
+
+    # DQN Bot
     qbot = MultiUnitDQNAgent(3, 7)
+    epsilon = 1.0
+    epsilon_decay = 0.995
+    min_epsilon = 0.01
 
-    setup = setup_game()
-    training_id = setup["Training_id"]
-    opponent_id = setup["Opponent_id"]
-    opponent = setup["Opponent"]
+    for episode in range(100):
+        setup = setup_game()
+        training_id = setup["Training_id"]
+        opponent_id = setup["Opponent_id"]
+        opponent = setup["Opponent"]
 
-    if opponent == "Random":
-        randall.set_agent_id(opponent_id)
-    elif opponent == "Dodger":
-        dodgy.set_agent_id(opponent_id)
-
-    # qbot.set_agent_id(training_id)
-    observation = env._initial_state
-
-    for i_ in range(1000):
-        actions = []
-
-        ml_state = parse_state(observation, training_id)
-
-        # qbot.get_actions(observation)
-        
         if opponent == "Random":
-            opp_actions = randall.get_actions(observation)
+            randall.set_agent_id(opponent_id)
         elif opponent == "Dodger":
-            opp_actions = dodgy.get_actions(observation)
-        else:
-            opp_actions = []
-
-        for unit in opp_actions:
-            actions.append(parse_action(opp_actions[unit], unit, observation))
-
-        observation, done, info = await env.step(actions)
-
-        if done:
-            await env.reset(random.choice(initial_states_li))
-            setup = setup_game()
-            training_id = setup["Training_id"]
-            opponent_id = setup["Opponent_id"]
-            opponent = setup["Opponent"]
-
-            if opponent == "Random":
-                randall.set_agent_id(opponent_id)
-            elif opponent == "Dodger":
-                dodgy.set_agent_id(opponent_id)
+            dodgy.set_agent_id(opponent_id)
+        
+        qbot.set_agent_id(training_id)
+        state = env._initial_state
+        c_state = parse_state(state)
+        
+        for time_step in range(301):
+            actions = []
             
-            # qbot.set_agent_id(training_id)
-            observation = env._initial_state
+            # DQN Agent
+            choice = qbot.select_action(c_state, epsilon)
+            q_actions = qbot.get_actions(c_state, epsilon)
+            for unit in q_actions:
+                actions.append(parse_action(opp_actions[unit], unit, observation))
+
+            # Opponent
+            if opponent == "Random":
+                opp_actions = randall.get_actions(observation)
+            elif opponent == "Dodger":
+                opp_actions = dodgy.get_actions(observation)
+            else:
+                opp_actions = []
+            for unit in opp_actions:
+                actions.append(parse_action(opp_actions[unit], unit, observation))
+
+            next_state, done, info = await env.step(actions)
+            reward = calculate_reward(state, next_state, training_id, opponent_id)
+            n_state = parse_state(next_state)
+
+            qbot.replay_memory.append((c_state, choice, reward, n_state, done))
+            qbot.replay()
+            state = next_state
+            c_state = n_state
+
+            if time_step % 10 == 0:
+                qbot.update_target_model()
+
+            if done:
+                break
+        
+        await env.reset(random.choice(initial_states_li))
+        epsilon *= epsilon_decay
+        epsilon = max(min_epsilon, epsilon)
+        
     await gym.close()
 
 
