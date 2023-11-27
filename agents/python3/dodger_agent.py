@@ -17,7 +17,7 @@ class DodgerAgent():
         width = self.current_state.get("world").get("width")
         height = self.current_state.get("world").get("height")
 
-        return (location[0] >= 0 & location[0] <= width & location[1] >= 0 & location[1] <= height)
+        return (location[0] >= 0 & location[0] < width & location[1] >= 0 & location[1] < height)
     
     def _get_surrounding_tiles(self, location):
         tile_north = [location[0], location[1]+1]
@@ -136,7 +136,7 @@ class DodgerAgent():
                         action = self._move_to_tile(random_tile, unit_location)
                 else:
                     # we're trapped
-                    action = ''
+                    action = 'nothing'
 
             res[unit_id] = action
 

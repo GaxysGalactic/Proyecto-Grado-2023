@@ -8,6 +8,8 @@ from dodger_agent import DodgerAgent
 from dqn_agent import DQNNetwork, MultiUnitDQNAgent
 from initial_states import initial_states_li
 from utilities import parse_action
+import numpy as np
+import logging
 
 fwd_model_uri = os.environ.get(
     "FWD_MODEL_CONNECTION_STRING") or "ws://127.0.0.1:6969/?role=admin"
@@ -23,18 +25,51 @@ mock_state: Dict = {
 agent_ids = ["a", "b"]
 opponent_choices = ["Random", "DoNothing", "Dodger"]
 
-def calculate_reward(p_state: Dict, c_state: Dict, training_id, opponent_id):
+team_hp = 9
+ex_grid = np.zeros([15,15])
+
+def calculate_reward(p_state: Dict, c_state: Dict, training_id, opponent_id, tick):
     friendlies = p_state.get("agents").get(training_id).get("unit_ids")
     enemies = p_state.get("agents").get(opponent_id).get("unit_ids")
+    entities = p_state.get("entities")
+    global team_hp
+    global ex_grid
     reward = 0
+
+    # Friendlies
     for unit in friendlies:
+        # Exploration Rewards
+        coords = c_state["unit_state"][unit]["coordinates"]
+        ex_grid[coords] = 1
+        if np.sum(ex_grid) % 20 == 0:
+            reward += 1
+
+        # HP Penalties
         reward += c_state["unit_state"][unit]["hp"] - p_state["unit_state"][unit]["hp"]
-        if c_state["unit_state"][unit]["hp"] - p_state["unit_state"][unit]["hp"] == -1 and c_state["unit_state"][unit]["hp"] == 0:
-            reward -= 2
+        if c_state["unit_state"][unit]["hp"] - p_state["unit_state"][unit]["hp"] == -1:
+            team_hp -= 1
+            # Was this damage self inflicted?
+            sf_fire = list(filter(lambda entity: entity.get(
+                "unit_id") in friendlies and entity.get("type") == "x" and entity.get("x") == coords[0] and entity.get("y") == coords[1], entities))
+            if sf_fire:
+                reward -= 1
+            # Death Punishment
+            if c_state["unit_state"][unit]["hp"] == 0:
+                reward -= 2
+
+    # HP Rewards
     for unit in enemies:
         reward += p_state["unit_state"][unit]["hp"] - c_state["unit_state"][unit]["hp"]
+        # Kill reward
         if p_state["unit_state"][unit]["hp"] - c_state["unit_state"][unit]["hp"] == 1 and c_state["unit_state"][unit]["hp"] == 0:
-            reward += 2
+            reward += 3
+
+    # Surviving Ring of Fire rewards
+    if tick > 200 and tick % 50 == 0:
+        reward += 1
+
+    # Exploration reward
+
     return reward
 
 
@@ -139,9 +174,17 @@ def setup_game():
         "Opponent_id": agent_ids[1],
         "Opponent": random.choice(opponent_choices)
     }
+    global team_hp 
+    team_hp = 9
+    global ex_grid
+    ex_grid = np.zeros([15, 15])
     return setup
 
 async def main():
+    # Logging
+    logging.basicConfig(filename='Training.log', level=logging.INFO, format='%(levelname)s - %(message)s')
+    logging.info("Episode, Tick, Reward")
+
     gym = Gym(fwd_model_uri)
     await gym.connect()
     env = gym.make("bomberland-open-ai-gym", random.choice(initial_states_li))
@@ -156,7 +199,7 @@ async def main():
     epsilon_decay = 0.995
     min_epsilon = 0.01
 
-    for episode in range(1):
+    for episode in range(10):
         setup = setup_game()
         training_id = setup["Training_id"]
         opponent_id = setup["Opponent_id"]
@@ -170,8 +213,10 @@ async def main():
         qbot.set_agent_id(training_id)
         state = env._initial_state
         c_state = parse_state(state, training_id)
+        c_state = np.reshape(c_state, [1, len(c_state)])
         
-        for time_step in range(301):
+        for time_step in range(450):
+            print(time_step)
             actions = []
             
             # DQN Agent
@@ -179,7 +224,9 @@ async def main():
             q_actions = qbot.get_actions(state, c_state, epsilon)
             for unit in q_actions:
                 if q_actions[unit] != "nothing":
-                    actions.append(parse_action(q_actions[unit], unit, training_id, state))
+                    action = parse_action(q_actions[unit], unit, training_id, state)
+                    if action:
+                        actions.append(action)
 
             # Opponent
             if opponent == "Random":
@@ -190,11 +237,24 @@ async def main():
                 opp_actions = []
             for unit in opp_actions:
                 if opp_actions[unit] != "nothing":
-                    actions.append(parse_action(opp_actions[unit], unit, opponent_id, state))
+                    action = parse_action(opp_actions[unit], unit, opponent_id, state)
+                    if action:
+                        actions.append(action)
 
             next_state, done, info = await env.step(actions)
-            reward = calculate_reward(state, next_state, training_id, opponent_id)
-            n_state = parse_state(next_state)
+            reward = calculate_reward(state, next_state, training_id, opponent_id, time_step)
+
+            # Speed Bonus
+            if done and time_step < 200 and team_hp > 0:
+                reward += 5
+
+            print("Reward: ")
+            print(reward)
+
+            logging.info(str(episode) + "," + str(time_step) + "," + str(reward))
+
+            n_state = parse_state(next_state, training_id)
+            n_state = np.reshape(n_state, [1, len(n_state)])
 
             qbot.replay_memory.append((c_state, choice, reward, n_state, done))
             qbot.replay()
@@ -206,11 +266,11 @@ async def main():
 
             if done:
                 break
-        
         await env.reset(random.choice(initial_states_li))
+        qbot.model.save("dqn_model.h5")
+        qbot.model.save_weights("dqn_weights.h5")
         epsilon *= epsilon_decay
         epsilon = max(min_epsilon, epsilon)
-
     await gym.close()
 
 

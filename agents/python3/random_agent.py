@@ -3,7 +3,7 @@ import random
 
 class RandomAgent():
 
-    actions = ["up", "down", "left", "right", "bomb", "detonate"]
+    actions = ["up", "down", "left", "right", "bomb", "detonate", "nothing"]
     
     agent_id = "a"
 

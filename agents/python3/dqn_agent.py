@@ -6,25 +6,23 @@ import tensorflow as tf
 class DQNNetwork(tf.keras.Model):
     def __init__(self, num_actions):
         super(DQNNetwork, self).__init__()
-        self.dense1 = tf.keras.layers.Dense(24, activation='relu')
-        self.dense2 = tf.keras.layers.Dense(24, activation='relu')
-        self.dense3 = tf.keras.layers.Dense(num_actions, activation=None)
+        self.dense1 = tf.keras.layers.Dense(512, activation='relu')
+        self.dense2 = tf.keras.layers.Dense(num_actions, activation=None)
 
     def call(self, state):
         x = self.dense1(state)
-        x = self.dense2(x)
-        return self.dense3(x)
+        return self.dense2(x)
 
 class MultiUnitDQNAgent:
 
-    actions = ["up", "down", "left", "right", "bomb", "detonate"]
+    actions = ["up", "down", "left", "right", "bomb", "detonate", "nothing"]
 
     agent_id = "a"
 
     def set_agent_id(self, new_id: str):
         self.agent_id = new_id
 
-    def __init__(self, num_units, num_actions_per_unit):
+    def __init__(self, num_units, num_actions_per_unit, replay_memory_size=200):
         self.num_units = num_units
         self.num_actions_per_unit = num_actions_per_unit
         self.total_actions = num_units * num_actions_per_unit
@@ -36,7 +34,10 @@ class MultiUnitDQNAgent:
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         self.gamma = 0.95
         self.batch_size = 32
+        self.replay_memory_size = replay_memory_size
         self.replay_memory = []
+
+        self.model.compile(optimizer=self.optimizer, loss="mse")
 
         self.action_matrix = []
         counter = 0
@@ -74,6 +75,10 @@ class MultiUnitDQNAgent:
     def replay(self):
         if len(self.replay_memory) < self.batch_size:
             return
+        
+        # Keep the replay memory size capped
+        if len(self.replay_memory) > self.replay_memory_size:
+            self.replay_memory.pop(0)  # Remove the oldest experience
 
         samples = np.random.choice(len(self.replay_memory), self.batch_size, replace=False)
         for sample in samples:
