@@ -38,5 +38,7 @@ def parse_action(action: str, unit_id: str, raw_state: Dict):
         if bomb_coordinates != None:
             x, y = bomb_coordinates
             return parse_detonate(x, y, unit_id)
+    elif action == "nothing":
+        return {}
     else:
         print(f"Unhandled action: {action} for unit {unit_id}")

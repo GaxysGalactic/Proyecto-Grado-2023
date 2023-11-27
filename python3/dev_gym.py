@@ -5,6 +5,9 @@ import os
 import random
 from random_agent import RandomAgent
 from dodger_agent import DodgerAgent
+from dqn_agent import DQNNetwork, MultiUnitDQNAgent
+from initial_states import initial_states_li
+from utilities import parse_action
 
 fwd_model_uri = os.environ.get(
     "FWD_MODEL_CONNECTION_STRING") or "ws://127.0.0.1:6969/?role=admin"
@@ -19,10 +22,6 @@ mock_state: Dict = {
 
 agent_ids: ["a", "b"]
 opponent_choices: ["Random", "DoNothing", "Dodger"]
-
-def calculate_reward(state: Dict):
-    # custom reward function
-    return 1
 
 def parse_unit_id(uid: str):
     if uid == "c":
@@ -126,15 +125,16 @@ def setup_game():
     }
     return setup
 
-
 async def main():
     gym = Gym(fwd_model_uri)
     await gym.connect()
-    env = gym.make("bomberland-open-ai-gym", mock_state)
+    env = gym.make("bomberland-open-ai-gym", random.choice(initial_states_li))
 
-    setup = setup_game()
     randall = RandomAgent()
     dodgy = DodgerAgent()
+    qbot = MultiUnitDQNAgent(3, 7)
+
+    setup = setup_game()
     training_id = setup["Training_id"]
     opponent_id = setup["Opponent_id"]
     opponent = setup["Opponent"]
@@ -155,16 +155,19 @@ async def main():
         # qbot.get_actions(observation)
         
         if opponent == "Random":
-            actions.append(randall.get_actions(observation))
+            opp_actions = randall.get_actions(observation)
         elif opponent == "Dodger":
-            actions.append(dodgy.get_actions(observation))
+            opp_actions = dodgy.get_actions(observation)
+        else:
+            opp_actions = []
+
+        for unit in opp_actions:
+            actions.append(parse_action(opp_actions[unit], unit, observation))
 
         observation, done, info = await env.step(actions)
-        reward = calculate_reward(observation)
 
-        print(f"reward: {reward}, done: {done}, info: {info}")
         if done:
-            await env.reset()
+            await env.reset(random.choice(initial_states_li))
             setup = setup_game()
             training_id = setup["Training_id"]
             opponent_id = setup["Opponent_id"]
