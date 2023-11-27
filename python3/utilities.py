@@ -28,16 +28,25 @@ def _get_bomb_to_detonate(unit, raw_state: Dict) -> Union[int, int] or None:
     else:
         return None
 
-def parse_action(action: str, unit_id: str, raw_state: Dict):
+def parse_action(action: str, unit_id: str, agent_id:str, raw_state: Dict):
     if action in ["up", "left", "right", "down"]:
-        return parse_move(action, unit_id)
+        return {
+            "agent_id": agent_id,
+            "action": parse_move(action, unit_id)
+        }
     elif action == "bomb":
-        return parse_bomb(unit_id)
+        return {
+            "agent_id": agent_id,
+            "action": parse_bomb(unit_id)
+        }
     elif action == "detonate":
         bomb_coordinates = _get_bomb_to_detonate(unit_id, raw_state)
         if bomb_coordinates != None:
             x, y = bomb_coordinates
-            return parse_detonate(x, y, unit_id)
+            return {
+                "agent_id": agent_id,
+                "action": parse_detonate(x, y, unit_id)
+            }
     elif action == "nothing":
         return {}
     else:

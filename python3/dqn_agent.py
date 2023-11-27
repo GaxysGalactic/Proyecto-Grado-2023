@@ -1,7 +1,6 @@
 import gym
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.api import keras
 
 # Define the Deep Q Network (DQN) model
 class DQNNetwork(tf.keras.Model):
@@ -57,12 +56,12 @@ class MultiUnitDQNAgent:
         q_values = self.model.predict(state)
         return np.argmax(q_values)
 
-    def get_actions(self, state, epsilon):
-        idx = self.select_action(self, state, epsilon)
+    def get_actions(self, r_state, state, epsilon):
+        idx = self.select_action(state, epsilon)
         act_str = self.action_matrix[idx]
-        act_li = act_str.split()
+        act_li = act_str.split(',')
 
-        my_units = state.get("agents").get(self.agent_id).get("unit_ids")
+        my_units = r_state.get("agents").get(self.agent_id).get("unit_ids")
         res = {}
         counter = 0
         for unit_id in my_units:
