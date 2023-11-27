@@ -18,6 +18,10 @@ class GymEnv():
         self._state = self._initial_state
         print("Resetting")
 
+    async def reset(self, new_state: Dict):
+        self._state = new_state
+        print("Resetting")
+
     async def step(self, actions):
         state = await self._send(self._state, actions, self._channel)
         self._state = state.get("next_state")

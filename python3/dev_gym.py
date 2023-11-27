@@ -2,6 +2,9 @@ import asyncio
 from typing import Dict
 from gym import Gym
 import os
+import random
+from random_agent import RandomAgent
+from dodger_agent import DodgerAgent
 
 fwd_model_uri = os.environ.get(
     "FWD_MODEL_CONNECTION_STRING") or "ws://127.0.0.1:6969/?role=admin"
@@ -14,6 +17,8 @@ mock_state: Dict = {
             "b":{"agent_id":"b","unit_ids":["d","f","h"]}},
         "unit_state":{"c":{"coordinates":[5,10],"hp":3,"inventory":{"bombs":3},"blast_diameter":3,"unit_id":"c","agent_id":"a","invulnerability":0},"d":{"coordinates":[9,10],"hp":3,"inventory":{"bombs":3},"blast_diameter":3,"unit_id":"d","agent_id":"b","invulnerability":0},"e":{"coordinates":[4,9],"hp":3,"inventory":{"bombs":3},"blast_diameter":3,"unit_id":"e","agent_id":"a","invulnerability":0},"f":{"coordinates":[10,9],"hp":3,"inventory":{"bombs":3},"blast_diameter":3,"unit_id":"f","agent_id":"b","invulnerability":0},"g":{"coordinates":[3,11],"hp":3,"inventory":{"bombs":3},"blast_diameter":3,"unit_id":"g","agent_id":"a","invulnerability":0},"h":{"coordinates":[11,11],"hp":3,"inventory":{"bombs":3},"blast_diameter":3,"unit_id":"h","agent_id":"b","invulnerability":0}},"entities":[{"created":0,"x":4,"y":5,"type":"m"},{"created":0,"x":10,"y":5,"type":"m"},{"created":0,"x":8,"y":3,"type":"m"},{"created":0,"x":6,"y":3,"type":"m"},{"created":0,"x":13,"y":12,"type":"m"},{"created":0,"x":1,"y":12,"type":"m"},{"created":0,"x":14,"y":2,"type":"m"},{"created":0,"x":0,"y":2,"type":"m"},{"created":0,"x":4,"y":4,"type":"m"},{"created":0,"x":10,"y":4,"type":"m"},{"created":0,"x":9,"y":6,"type":"m"},{"created":0,"x":5,"y":6,"type":"m"},{"created":0,"x":10,"y":0,"type":"m"},{"created":0,"x":4,"y":0,"type":"m"},{"created":0,"x":3,"y":4,"type":"m"},{"created":0,"x":11,"y":4,"type":"m"},{"created":0,"x":1,"y":6,"type":"m"},{"created":0,"x":13,"y":6,"type":"m"},{"created":0,"x":14,"y":4,"type":"m"},{"created":0,"x":0,"y":4,"type":"m"},{"created":0,"x":1,"y":13,"type":"m"},{"created":0,"x":13,"y":13,"type":"m"},{"created":0,"x":8,"y":7,"type":"m"},{"created":0,"x":6,"y":7,"type":"m"},{"created":0,"x":10,"y":13,"type":"m"},{"created":0,"x":4,"y":13,"type":"m"},{"created":0,"x":2,"y":12,"type":"m"},{"created":0,"x":12,"y":12,"type":"m"},{"created":0,"x":9,"y":2,"type":"m"},{"created":0,"x":5,"y":2,"type":"m"},{"created":0,"x":9,"y":13,"type":"m"},{"created":0,"x":5,"y":13,"type":"m"},{"created":0,"x":0,"y":0,"type":"m"},{"created":0,"x":14,"y":0,"type":"m"},{"created":0,"x":10,"y":12,"type":"m"},{"created":0,"x":4,"y":12,"type":"m"},{"created":0,"x":1,"y":10,"type":"m"},{"created":0,"x":13,"y":10,"type":"m"},{"created":0,"x":11,"y":6,"type":"m"},{"created":0,"x":3,"y":6,"type":"m"},{"created":0,"x":4,"y":2,"type":"m"},{"created":0,"x":10,"y":2,"type":"m"},{"created":0,"x":12,"y":4,"type":"m"},{"created":0,"x":2,"y":4,"type":"m"},{"created":0,"x":12,"y":8,"type":"m"},{"created":0,"x":2,"y":8,"type":"m"},{"created":0,"x":11,"y":12,"type":"m"},{"created":0,"x":3,"y":12,"type":"m"},{"created":0,"x":12,"y":9,"type":"m"},{"created":0,"x":2,"y":9,"type":"m"},{"created":0,"x":8,"y":2,"type":"w","hp":1},{"created":0,"x":6,"y":2,"type":"w","hp":1},{"created":0,"x":11,"y":3,"type":"w","hp":1},{"created":0,"x":3,"y":3,"type":"w","hp":1},{"created":0,"x":11,"y":13,"type":"w","hp":1},{"created":0,"x":3,"y":13,"type":"w","hp":1},{"created":0,"x":4,"y":14,"type":"w","hp":1},{"created":0,"x":10,"y":14,"type":"w","hp":1},{"created":0,"x":13,"y":2,"type":"w","hp":1},{"created":0,"x":1,"y":2,"type":"w","hp":1},{"created":0,"x":2,"y":1,"type":"w","hp":1},{"created":0,"x":12,"y":1,"type":"w","hp":1},{"created":0,"x":14,"y":13,"type":"w","hp":1},{"created":0,"x":0,"y":13,"type":"w","hp":1},{"created":0,"x":10,"y":11,"type":"w","hp":1},{"created":0,"x":4,"y":11,"type":"w","hp":1},{"created":0,"x":14,"y":14,"type":"w","hp":1},{"created":0,"x":0,"y":14,"type":"w","hp":1},{"created":0,"x":2,"y":3,"type":"w","hp":1},{"created":0,"x":12,"y":3,"type":"w","hp":1},{"created":0,"x":1,"y":3,"type":"w","hp":1},{"created":0,"x":13,"y":3,"type":"w","hp":1},{"created":0,"x":12,"y":10,"type":"w","hp":1},{"created":0,"x":2,"y":10,"type":"w","hp":1},{"created":0,"x":9,"y":5,"type":"w","hp":1},{"created":0,"x":5,"y":5,"type":"w","hp":1},{"created":0,"x":3,"y":8,"type":"w","hp":1},{"created":0,"x":11,"y":8,"type":"w","hp":1},{"created":0,"x":6,"y":6,"type":"w","hp":1},{"created":0,"x":8,"y":6,"type":"w","hp":1},{"created":0,"x":0,"y":7,"type":"w","hp":1},{"created":0,"x":14,"y":7,"type":"w","hp":1},{"created":0,"x":5,"y":8,"type":"w","hp":1},{"created":0,"x":9,"y":8,"type":"w","hp":1},{"created":0,"x":8,"y":13,"type":"w","hp":1},{"created":0,"x":6,"y":13,"type":"w","hp":1},{"created":0,"x":11,"y":1,"type":"w","hp":1},{"created":0,"x":3,"y":1,"type":"w","hp":1},{"created":0,"x":2,"y":6,"type":"w","hp":1},{"created":0,"x":12,"y":6,"type":"w","hp":1},{"created":0,"x":8,"y":5,"type":"w","hp":1},{"created":0,"x":6,"y":5,"type":"w","hp":1},{"created":0,"x":10,"y":10,"type":"w","hp":1},{"created":0,"x":4,"y":10,"type":"w","hp":1},{"created":0,"x":10,"y":6,"type":"w","hp":1},{"created":0,"x":4,"y":6,"type":"w","hp":1},{"created":0,"x":8,"y":8,"type":"w","hp":1},{"created":0,"x":6,"y":8,"type":"w","hp":1},{"created":0,"x":8,"y":10,"type":"w","hp":1},{"created":0,"x":6,"y":10,"type":"w","hp":1},{"created":0,"x":12,"y":0,"type":"w","hp":1},{"created":0,"x":2,"y":0,"type":"w","hp":1},{"created":0,"x":11,"y":7,"type":"w","hp":1},{"created":0,"x":3,"y":7,"type":"w","hp":1},{"created":0,"x":11,"y":2,"type":"w","hp":1},{"created":0,"x":3,"y":2,"type":"w","hp":1},{"created":0,"x":1,"y":0,"type":"o","hp":3},{"created":0,"x":13,"y":0,"type":"o","hp":3},{"created":0,"x":9,"y":12,"type":"o","hp":3},{"created":0,"x":5,"y":12,"type":"o","hp":3},{"created":0,"x":13,"y":7,"type":"o","hp":3},{"created":0,"x":1,"y":7,"type":"o","hp":3},{"created":0,"x":14,"y":11,"type":"o","hp":3},{"created":0,"x":0,"y":11,"type":"o","hp":3},{"created":0,"x":10,"y":1,"type":"o","hp":3},{"created":0,"x":4,"y":1,"type":"o","hp":3},{"created":0,"x":0,"y":1,"type":"o","hp":3},{"created":0,"x":14,"y":1,"type":"o","hp":3},{"created":0,"x":5,"y":1,"type":"o","hp":3},{"created":0,"x":9,"y":1,"type":"o","hp":3}],"world":{"width":15,"height":15},"tick":0,"config":{"tick_rate_hz":10,"game_duration_ticks":300,"fire_spawn_interval_ticks":2}}
 
+agent_ids: ["a", "b"]
+opponent_choices: ["Random", "DoNothing", "Dodger"]
 
 def calculate_reward(state: Dict):
     # custom reward function
@@ -112,19 +117,66 @@ def parse_state(state: Dict, friendly_id):
     res = parse_entities(res, entities)
     return res
 
+def setup_game():
+    random.shuffle(agent_ids)
+    setup = {
+        "Training_id": agent_ids[0],
+        "Opponent_id": agent_ids[1],
+        "Opponent": random.choice(opponent_choices)
+    }
+    return setup
+
 
 async def main():
     gym = Gym(fwd_model_uri)
     await gym.connect()
     env = gym.make("bomberland-open-ai-gym", mock_state)
+
+    setup = setup_game()
+    randall = RandomAgent()
+    dodgy = DodgerAgent()
+    training_id = setup["Training_id"]
+    opponent_id = setup["Opponent_id"]
+    opponent = setup["Opponent"]
+
+    if opponent == "Random":
+        randall.set_agent_id(opponent_id)
+    elif opponent == "Dodger":
+        dodgy.set_agent_id(opponent_id)
+
+    # qbot.set_agent_id(training_id)
+    observation = env._initial_state
+
     for i_ in range(1000):
         actions = []
+
+        ml_state = parse_state(observation, training_id)
+
+        # qbot.get_actions(observation)
+        
+        if opponent == "Random":
+            actions.append(randall.get_actions(observation))
+        elif opponent == "Dodger":
+            actions.append(dodgy.get_actions(observation))
+
         observation, done, info = await env.step(actions)
         reward = calculate_reward(observation)
 
         print(f"reward: {reward}, done: {done}, info: {info}")
         if done:
             await env.reset()
+            setup = setup_game()
+            training_id = setup["Training_id"]
+            opponent_id = setup["Opponent_id"]
+            opponent = setup["Opponent"]
+
+            if opponent == "Random":
+                randall.set_agent_id(opponent_id)
+            elif opponent == "Dodger":
+                dodgy.set_agent_id(opponent_id)
+            
+            # qbot.set_agent_id(training_id)
+            observation = env._initial_state
     await gym.close()
 
 
