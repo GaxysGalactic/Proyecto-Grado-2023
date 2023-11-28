@@ -22,7 +22,7 @@ class MultiUnitDQNAgent:
     def set_agent_id(self, new_id: str):
         self.agent_id = new_id
 
-    def __init__(self, num_units, num_actions_per_unit, replay_memory_size=200):
+    def __init__(self, num_units, num_actions_per_unit, replay_memory_size=100):
         self.num_units = num_units
         self.num_actions_per_unit = num_actions_per_unit
         self.total_actions = num_units * num_actions_per_unit

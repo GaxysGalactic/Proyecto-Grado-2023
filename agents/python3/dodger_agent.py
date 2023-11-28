@@ -87,7 +87,7 @@ class DodgerAgent():
                     new_x, new_y = bomb_x + direction[0]*d, bomb_y + direction[1]*d
                     if self._is_occupied([new_x, new_y]) or not self._is_in_bounds([new_x, new_y]):
                         break
-                    else:
+                    elif new_x < 15 and new_y < 15:
                         grid[new_x, new_y] += radius - d
 
         return grid
