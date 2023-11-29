@@ -1,11 +1,29 @@
 from typing import Dict
 from typing import Union
 import numpy as np
+import random
 
 _move_set = set(("up", "down", "left", "right"))
 
 team_hp = 9
 ex_grid = np.zeros([15,15])
+
+agent_ids = ["a", "b"]
+opponent_choices = ["Random", "DoNothing", "Dodger"]
+
+# Setup for a game
+def setup_game():
+    random.shuffle(agent_ids)
+    setup = {
+        "Training_id": agent_ids[0],
+        "Opponent_id": agent_ids[1],
+        "Opponent": random.choice(opponent_choices)
+    }
+    global team_hp
+    team_hp = 9
+    global ex_grid
+    ex_grid = np.zeros([15, 15])
+    return setup
 
 ###############################################################################
 #      ___       ______ .___________. __    ______   .__   __.      _______.
