@@ -1,1 +1,1 @@
-ai_flag = "NEAT"
+ai_flag = "DQN"

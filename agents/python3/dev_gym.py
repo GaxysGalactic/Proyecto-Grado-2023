@@ -9,7 +9,7 @@ fwd_model_uri = os.environ.get(
 
 async def main():
     if ai_flag == "DQN":
-        dqn_ai.run_DQN(fwd_model_uri)
+        await dqn_ai.run_DQN(fwd_model_uri)
     else:
         print("NEAT")
 
