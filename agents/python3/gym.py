@@ -18,6 +18,7 @@ class GymEnv():
         self._state = self._initial_state
         print("Resetting")
 
+    # NEW: Can now reset to a particular state of choice!
     async def reset(self, new_state: Dict):
         self._state = new_state
         self._initial_state = new_state

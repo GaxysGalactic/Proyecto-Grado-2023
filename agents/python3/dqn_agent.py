@@ -2,32 +2,38 @@ import gym
 import numpy as np
 import tensorflow as tf
 
+##################################
+#  _______   ______     .__   __. 
+# |       \ /  __  \    |  \ |  | 
+# |  .--.  |  |  |  |   |   \|  | 
+# |  |  |  |  |  |  |   |  . `  | 
+# |  '--'  |  `--'  '--.|  |\   | 
+# |_______/ \_____\_____\__| \__| 
+##################################
+
 # Define the Deep Q Network (DQN) model
-class DQNNetwork(tf.keras.Model):
+class DQNNetwork(tf.keras.Sequential):
     def __init__(self, num_actions):
-        super(DQNNetwork, self).__init__()
-        self.dense1 = tf.keras.layers.Dense(512, activation='relu')
-        self.dense2 = tf.keras.layers.Dense(num_actions, activation=None)
+        super(DQNNetwork, self).__init__([
+            tf.keras.layers.Dense(512, activation='relu', name='hidden'),
+            tf.keras.layers.Dense(num_actions, activation=None, name='output')
+        ])
 
-    def call(self, state):
-        x = self.dense1(state)
-        return self.dense2(x)
-
+# Define the DQN Agent class
 class MultiUnitDQNAgent:
 
     actions = ["up", "down", "left", "right", "bomb", "detonate", "nothing"]
-
     agent_id = "a"
 
+    # Sets the id of the agent
     def set_agent_id(self, new_id: str):
         self.agent_id = new_id
 
-    def __init__(self, num_units, num_actions_per_unit, replay_memory_size=100):
+    # INITIALIZER
+    def __init__(self, num_units, num_actions_per_unit, replay_memory_size=100, load_model_path=None):
         self.num_units = num_units
         self.num_actions_per_unit = num_actions_per_unit
-        self.total_actions = num_units * num_actions_per_unit
-
-        # Modify your neural network to handle the combined action space
+        self.total_actions = num_actions_per_unit ** num_units
         self.model = DQNNetwork(self.total_actions)
         self.target_model = DQNNetwork(self.total_actions)
         self.target_model.set_weights(self.model.get_weights())
@@ -36,9 +42,24 @@ class MultiUnitDQNAgent:
         self.batch_size = 32
         self.replay_memory_size = replay_memory_size
         self.replay_memory = []
+        self.psummary = False
+
+        # Attempt to load model from file
+        if load_model_path:
+            try:
+                self.model = tf.keras.models.load_model(load_model_path, custom_objects={'DQNNetwork': DQNNetwork})
+                self.target_model.set_weights(self.model.get_weights())
+                print("Loaded entire model from file!")
+            except (OSError, ValueError):
+                try:
+                    self.model.load_weights(load_model_path)
+                    print("Loaded model weights!")
+                except (OSError, ValueError):
+                    print("Failed to load the model or weights. Continuing with a new model...")
 
         self.model.compile(optimizer=self.optimizer, loss="mse")
 
+        # Create the action matrix needed to convert index into set of actions
         self.action_matrix = []
         counter = 0
         for action in self.actions:
@@ -51,6 +72,7 @@ class MultiUnitDQNAgent:
                     self.action_matrix.append(ac)
                     counter += 1
 
+    # Select an action based on the current epsilon random chance
     def select_action(self, state, epsilon):
         if np.random.rand() < epsilon:
             return np.random.randint(self.total_actions)
@@ -92,6 +114,11 @@ class MultiUnitDQNAgent:
                 target[0][action] = reward + Q_future * self.gamma
 
             self.model.fit(state, target, epochs=1, verbose=0)
+        
+        if not self.psummary:
+            self.psummary = True
+            print(self.model.input_shape)
+            print(self.model.summary())
 
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
