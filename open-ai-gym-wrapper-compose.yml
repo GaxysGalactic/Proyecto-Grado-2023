@@ -18,8 +18,10 @@ services:
         environment:
             - TELEMETRY_ENABLED=0
             - PORT=6969
+            - WORLD_SEED=389170
             - PRNG_SEED=1234
             - FREEZE_POWERUP_SPAWN_WEIGHTING=0.0
+            - BLAST_POWERUP_SPAWN_WEIGHTING=1.0
         networks:
             - coderone-open-ai-gym-wrapper
 networks:
