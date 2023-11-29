@@ -5,7 +5,7 @@ import os
 import random
 from random_agent import RandomAgent
 from dodger_agent import DodgerAgent
-from dqn_agent import DQNNetwork, MultiUnitDQNAgent
+from dqn_agent import MultiUnitDQNAgent
 from initial_states import initial_states_li
 from utilities import parse_action
 import numpy as np
@@ -193,7 +193,14 @@ async def main():
     dodgy = DodgerAgent()
 
     # DQN Bot
-    qbot = MultiUnitDQNAgent(3, 7)
+    if os.path.isfile("dqn_model.keras"):
+        qbot = MultiUnitDQNAgent(3, 7, load_model_path="dqn_model.keras")
+    elif os.path.isfile("dqn_weights.keras"):
+        qbot = MultiUnitDQNAgent(3, 7, load_model_path="dqn_weights.keras")
+    else:
+        qbot = MultiUnitDQNAgent(3, 7)
+
+    
     epsilon = 1.0
     epsilon_decay = 0.995
     min_epsilon = 0.01
@@ -262,6 +269,10 @@ async def main():
 
             if time_step % 10 == 0:
                 qbot.update_target_model()
+
+            if time_step % 200 == 0:
+                qbot.model.save("dqn_model.keras")
+                qbot.model.save_weights("dqn_weights.keras")
 
             if done:
                 break

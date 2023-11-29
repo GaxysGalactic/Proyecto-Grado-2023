@@ -22,7 +22,7 @@ class MultiUnitDQNAgent:
     def set_agent_id(self, new_id: str):
         self.agent_id = new_id
 
-    def __init__(self, num_units, num_actions_per_unit, replay_memory_size=100):
+    def __init__(self, num_units, num_actions_per_unit, replay_memory_size=100, load_model_path=None):
         self.num_units = num_units
         self.num_actions_per_unit = num_actions_per_unit
         self.total_actions = num_units * num_actions_per_unit
@@ -36,6 +36,17 @@ class MultiUnitDQNAgent:
         self.batch_size = 32
         self.replay_memory_size = replay_memory_size
         self.replay_memory = []
+
+        if load_model_path:
+            try:
+                self.model = tf.keras.models.load_model(load_model_path)
+                print("Loaded entire model from file!")
+            except (OSError, ValueError):
+                try:
+                    self.model.load_weights(load_model_path)
+                    print("Loaded model weights!")
+                except (OSError, ValueError):
+                    print("Failed to load the model or weights. Continuing with a new model...")
 
         self.model.compile(optimizer=self.optimizer, loss="mse")
 
