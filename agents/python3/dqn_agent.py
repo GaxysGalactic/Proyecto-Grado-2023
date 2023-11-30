@@ -30,7 +30,7 @@ class MultiUnitDQNAgent:
         self.agent_id = new_id
 
     # INITIALIZER
-    def __init__(self, num_units, num_actions_per_unit, replay_memory_size=100, load_model_path=None):
+    def __init__(self, num_units, num_actions_per_unit, replay_memory_size=450, load_model_path=None):
         self.num_units = num_units
         self.num_actions_per_unit = num_actions_per_unit
         self.total_actions = num_actions_per_unit ** num_units
