@@ -11,7 +11,7 @@ import tensorflow as tf
 # |_______/ \_____\_____\__| \__| 
 ##################################
 
-# Define the Deep Q Network (DQN) model
+# Define the Deep Q Network (DQN) model - DEPRECATED
 class DQNNetwork(tf.keras.Sequential):
     def __init__(self, num_actions):
         super(DQNNetwork, self).__init__([
@@ -25,6 +25,13 @@ class MultiUnitDQNAgent:
     actions = ["up", "down", "left", "right", "bomb", "detonate", "nothing"]
     agent_id = "a"
 
+    # Adding this, custom class isn't necessary
+    def get_model(self, num_actions):
+        model = tf.keras.Sequential()
+        model.add(tf.keras.layers.Dense(512, activation='relu', name='hidden'))
+        model.add(tf.keras.layers.Dense(num_actions, activation=None, name='output'))
+        return model
+
     # Sets the id of the agent
     def set_agent_id(self, new_id: str):
         self.agent_id = new_id
@@ -34,9 +41,8 @@ class MultiUnitDQNAgent:
         self.num_units = num_units
         self.num_actions_per_unit = num_actions_per_unit
         self.total_actions = num_actions_per_unit ** num_units
-        self.model = DQNNetwork(self.total_actions)
-        self.target_model = DQNNetwork(self.total_actions)
-        self.target_model.set_weights(self.model.get_weights())
+        self.model = self.get_model(self.total_actions)
+        self.target_model = self.get_model(self.total_actions)
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         self.gamma = 0.95
         self.batch_size = 32
@@ -47,8 +53,7 @@ class MultiUnitDQNAgent:
         # Attempt to load model from file
         if load_model_path:
             try:
-                self.model = tf.keras.models.load_model(load_model_path, custom_objects={'DQNNetwork': DQNNetwork})
-                self.target_model.set_weights(self.model.get_weights())
+                self.model = tf.keras.models.load_model(load_model_path)
                 print("Loaded entire model from file!")
             except (OSError, ValueError):
                 try:

@@ -130,7 +130,7 @@ async def run_DQN(fwd_model_uri: str):
             c_state = n_state
 
             # Update Target Model often
-            if time_step % 10 == 0:
+            if time_step % 10 == 0 and time_step > 40:
                 qbot.update_target_model()
 
             # Make a midway save of the model - partway through a game.
@@ -142,7 +142,7 @@ async def run_DQN(fwd_model_uri: str):
                 break
         await env.reset(random.choice(initial_states_li))
         qbot.model.save("dqn_model.keras")
-        qbot.model.save_weights("dqn_weights.keras")
+        qbot.model.save_weights("dqn.weights.h5")
 
         # Decay epsilon and save it
         epsilon *= epsilon_decay
