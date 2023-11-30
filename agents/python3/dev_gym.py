@@ -1,6 +1,7 @@
 import asyncio
 import os
 import dqn_ai
+import neat_ai
 
 from ai_flag import ai_flag
 
@@ -11,7 +12,8 @@ async def main():
     if ai_flag == "DQN":
         await dqn_ai.run_DQN(fwd_model_uri)
     else:
-        print("NEAT")
+        neato = neat_ai.NeatAI()
+        await neato.run_NEAT(fwd_model_uri)
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -109,11 +109,7 @@ async def run_DQN(fwd_model_uri: str):
 
             # Calculate Next Tick and Reward
             next_state, done, info = await env.step(actions)
-            reward = utilities.calculate_reward(state, next_state, training_id, opponent_id, time_step)
-
-            # Speed Bonus for Reward
-            if done and time_step < 200 and utilities.team_hp > 0:
-                reward += 5
+            reward = utilities.calculate_reward(state, next_state, training_id, opponent_id, time_step, done)
 
             # Log Rewards
             total_reward += reward

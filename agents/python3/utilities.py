@@ -93,7 +93,7 @@ def parse_action(action: str, unit_id: str, agent_id:str, raw_state: Dict):
 ###############################################################################
 
 
-def calculate_reward(p_state: Dict, c_state: Dict, training_id, opponent_id, tick):
+def calculate_reward(p_state: Dict, c_state: Dict, training_id, opponent_id, tick, done):
     friendlies = p_state.get("agents").get(training_id).get("unit_ids")
     enemies = p_state.get("agents").get(opponent_id).get("unit_ids")
     entities = p_state.get("entities")
@@ -107,7 +107,7 @@ def calculate_reward(p_state: Dict, c_state: Dict, training_id, opponent_id, tic
         coords = c_state["unit_state"][unit]["coordinates"]
         if ex_grid[coords[0], coords[1]] == 0.0 and tick < 200:
             ex_grid[coords[0], coords[1]] = 1
-            if np.sum(ex_grid) % 20 == 0:
+            if np.sum(ex_grid) % 20 == 0 and np.sum(ex_grid) < 102:
                 reward += 1
 
         # HP Penalties
@@ -140,7 +140,12 @@ def calculate_reward(p_state: Dict, c_state: Dict, training_id, opponent_id, tic
     if tick > 200 and tick % 50 == 0:
         reward += 1
 
-    # Exploration reward
+    # Winning Rewards
+    if done and team_hp > 0:
+        reward += 11
+        # Speed Bonus
+        if tick < 200:
+            reward += 5
 
     return reward
 
