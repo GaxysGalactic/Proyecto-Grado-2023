@@ -4,13 +4,13 @@ import os
 import random
 from random_agent import RandomAgent
 from dodger_agent import DodgerAgent
-from dqn_agent import MultiUnitDQNAgent
 from initial_states import initial_states_li
 import utilities
 import numpy as np
 import logging
-import pickle
 import neat
+from asyncPop import AsyncPop
+from ai_flag import neat_load_checkpoint, neat_checkpoint_fp
 
 #############################################
 # .__   __.  _______     ___   .___________.
@@ -31,7 +31,7 @@ class NeatAI:
             logExists = True
         logging.basicConfig(filename='TrainingNEAT.log', level=logging.INFO, format='%(message)s')
         if not logExists:
-            logging.info("Total Reward")
+            logging.info("Genome_ID, Total Reward")
 
         # Opponents
         self.randall = RandomAgent()
@@ -50,11 +50,12 @@ class NeatAI:
                     self.action_matrix.append(ac)
                     counter += 1
 
-    def get_neat_actions(self, r_state, state, idx):
+    # Get the action list for the units based on the given index
+    def get_neat_actions(self, r_state, training_id, idx):
         act_str = self.action_matrix[idx]
         act_li = act_str.split(',')
 
-        my_units = r_state.get("agents").get(self.agent_id).get("unit_ids")
+        my_units = r_state.get("agents").get(training_id).get("unit_ids")
         res = {}
         counter = 0
         for unit_id in my_units:
@@ -63,6 +64,7 @@ class NeatAI:
 
         return res
 
+    # NEAT-python eval_genomes function
     async def eval_genomes(self, genomes, config):
         for genome_id, genome in genomes:
 
@@ -83,13 +85,13 @@ class NeatAI:
             net = neat.nn.FeedForwardNetwork.create(genome, config)
 
             # Get state and parse it
-            state = await self.env.reset(random.choice(initial_states_li))
+            await self.env.reset(random.choice(initial_states_li))
+            state = self.env._initial_state
             c_state = np.asarray(utilities.parse_state(state, training_id))
-            c_state = np.reshape(c_state, [1, len(c_state)])
 
             total_reward = 0
 
-            for _ in range(200):  # Run for a maximum of 450 steps
+            for time_step in range(450):  # Run for a maximum of 450 steps (Max ticks in game)
                 actions = []
 
                 # Opponent
@@ -108,7 +110,7 @@ class NeatAI:
                 # NEAT agent actions
                 action_probabilities = net.activate(c_state)
                 actionidx = action_probabilities.index(max(action_probabilities))
-                n_actions = self.get_neat_actions(state, c_state, actionidx)
+                n_actions = self.get_neat_actions(state, training_id, actionidx)
                 for unit in n_actions:
                     if n_actions[unit] != "nothing":
                         action = utilities.parse_action(n_actions[unit], unit, training_id, state)
@@ -117,14 +119,13 @@ class NeatAI:
 
                 # Calculate Next Tick and Reward
                 next_state, done, info = await self.env.step(actions)
-                reward = utilities.calculate_reward(state, next_state, training_id, opponent_id, time_step)
+                reward = utilities.calculate_reward(state, next_state, training_id, opponent_id, time_step, done)
                 total_reward += reward
 
                 if done:
                     break
-
+            logging.info(str(genome_id) + "," + str(total_reward))
             genome.fitness = total_reward
-
 
     async def run_NEAT(self, fwd_model_uri: str):
         # Gym Creation
@@ -137,17 +138,26 @@ class NeatAI:
         config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                      neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
         
-        p = neat.Population(config)
+        # Create a Population and add Reporters
+        p = AsyncPop(config)
         p.add_reporter(neat.StdOutReporter(True))
         stats = neat.StatisticsReporter()
         p.add_reporter(stats)
         p.add_reporter(neat.Checkpointer(5))
 
-        winner = p.run(self.eval_genomes, 100)
+        # Restore from checkpoint if needed
+        if neat_load_checkpoint:
+            p = neat.Checkpointer.restore_checkpoint(neat_checkpoint_fp)
+
+        # Run NEAT algorithm
+        winner = await p.run(self.eval_genomes, 100)
+
+        # Best genome found!
         winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
         with open('best_genome.txt', 'w') as f:
             f.write(str(winner_net))
 
+        # Save NEAT Checkpoint
         p.save_checkpoint('final-neat-checkpoint')
 
         await self.gym.close()
