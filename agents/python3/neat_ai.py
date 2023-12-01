@@ -143,7 +143,7 @@ class NeatAI:
         p.add_reporter(neat.StdOutReporter(True))
         stats = neat.StatisticsReporter()
         p.add_reporter(stats)
-        p.add_reporter(neat.Checkpointer(5))
+        p.add_reporter(neat.Checkpointer(10))
 
         # Restore from checkpoint if needed
         if neat_load_checkpoint:
