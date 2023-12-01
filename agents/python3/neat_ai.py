@@ -11,6 +11,7 @@ import logging
 import neat
 from asyncPop import AsyncPop
 from ai_flag import neat_load_checkpoint, neat_checkpoint_fp
+import pickle
 
 #############################################
 # .__   __.  _______     ___   .___________.
@@ -109,7 +110,8 @@ class NeatAI:
 
                 # NEAT agent actions
                 action_probabilities = net.activate(c_state)
-                actionidx = action_probabilities.index(max(action_probabilities))
+                maximum = max(action_probabilities)
+                actionidx = random.choice([i for i in range(len(action_probabilities)) if action_probabilities[i] == maximum])
                 n_actions = self.get_neat_actions(state, training_id, actionidx)
                 for unit in n_actions:
                     if n_actions[unit] != "nothing":
@@ -121,6 +123,9 @@ class NeatAI:
                 next_state, done, info = await self.env.step(actions)
                 reward = utilities.calculate_reward(state, next_state, training_id, opponent_id, time_step, done)
                 total_reward += reward
+
+                state = next_state
+                c_state = np.asarray(utilities.parse_state(state, training_id))
 
                 if done:
                     break
@@ -156,8 +161,6 @@ class NeatAI:
         winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
         with open('best_genome.txt', 'w') as f:
             f.write(str(winner_net))
-
-        # Save NEAT Checkpoint
-        p.save_checkpoint('final-neat-checkpoint')
+        pickle.dump(winner, open('winner.pickle', 'wb'))
 
         await self.gym.close()
