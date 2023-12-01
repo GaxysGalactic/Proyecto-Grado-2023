@@ -156,7 +156,7 @@ class Agent():
                         min_danger = 999
                         chosen_tile = unit_location
                         for tile in empty_tiles:
-                            if danger_grid[tile] < min_danger:
+                            if danger_grid[tile[0]][tile[1]] < min_danger:
                                 chosen_tile = tile
                         action = self._move_to_tile(chosen_tile, unit_location)
                     else:
